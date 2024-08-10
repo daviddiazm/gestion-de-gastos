@@ -1,11 +1,13 @@
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import ControlPresupuesto from './components/ControlPresupuesto.vue';
 import imgAgregarGasto from './assets/img/nuevo-gasto.svg'
 import Modal from './components/Modal.vue';
 import Presupuesto from './components/Presupuesto.vue';
 import Gasto from './components/Gasto.vue';
+import Filtro from './components/Filtro.vue';
+
 import { generarId } from './helpers';
 
 
@@ -14,6 +16,8 @@ const disponible = ref(0)
 const gastado = ref(0)
 const indexGastoSeleccionado = ref(null)
 const gastos = ref([])
+// const gastosFiltrados = ref([])
+const filtro = ref(null)
 const gasto = reactive({
   nombre: null,
   cantidad: null,
@@ -26,6 +30,17 @@ const modal = reactive({
   animacion: false
 })
 
+onMounted(() => {
+  const presupuestoLocalS = JSON.parse(localStorage.getItem('presupuesto'))
+  const gastostoLocalS = JSON.parse(localStorage.getItem('gastos'))
+  if(presupuestoLocalS ) {
+    presupuesto.value = presupuestoLocalS
+  }
+  if ( gastostoLocalS ) {
+    gastos.value = gastostoLocalS
+  }
+})
+
 watch(gastos,()=> {
   const totalGastos = gastos.value.reduce((total, gasto)=> gasto.cantidad + total,0 )
   gastado.value = totalGastos
@@ -33,12 +48,17 @@ watch(gastos,()=> {
 },{
   deep:true
 })
-// watch(gastos, (newGastos) => {
-//   console.log("Gastos actualizados:", newGastos);
-//   const totalGastos = gastos.value.reduce((total, gasto) => gasto.cantidad + total, 0);
-//   gastado.value = totalGastos;
-//   disponible.value = presupuesto.value - totalGastos;
-// }, { deep: true });
+
+watch(gastos.value ,() => {
+  guardadrLocalStorage()
+},{
+  deep: true
+})
+
+watch(presupuesto.value, () => {
+  guardadrLocalStorage()
+})
+
 
 const definirtPresupuesto = (presupuestoDefinido) => {
   presupuesto.value = presupuestoDefinido
@@ -77,10 +97,48 @@ const editarGasto = () => {
 }
 
 const eliminarGasto = () => {
-  gastos.value.splice(indexGastoSeleccionado.value, 1)
-  indexGastoSeleccionado.value = null; // Reset the selected index
+  if (confirm('Seguro que quieres elimminar?')) {
+    gastos.value.splice(indexGastoSeleccionado.value, 1)
+    indexGastoSeleccionado.value = null; // Reset the selected index
+  }
 }
 
+const gastosFiltrados = computed(() => {
+  if(filtro.value){
+    return gastosFiltrados.value = gastos.value.filter(gasto => gasto.categoria === filtro.value)
+  } else {
+    return gastos.value
+  }
+})
+
+const sePuedeFiltrar = computed(() => {
+  return gastosFiltrados.length > 0 || gastos.value.length > 0 
+})
+
+const reiniciarApp = () => {
+  presupuesto.value = 0
+  // disponible.value = 0
+  // gastado.value = 0
+  // indexGastoSeleccionado.value = null
+  gastos.value = []  
+  // gasto = {
+  //   nombre: null,
+  //   cantidad: null,
+  //   categoria: null,
+  //   id: null,
+  //   fecha: Date.now()
+  // }
+  // modal = {
+  //   mostrar: false,
+  //   animacion: false
+  // }
+}
+
+const guardadrLocalStorage = computed(() => {
+  localStorage.setItem('presupuesto', JSON.stringify(presupuesto.value))
+  // localStorage.setItem('gastado', JSON.stringify(gastado.value))
+  localStorage.setItem('gastos', JSON.stringify(gastos.value))
+})
 
 </script>
 
@@ -98,6 +156,7 @@ const eliminarGasto = () => {
           :presupuesto="presupuesto"
           :disponible="disponible"
           :gastado="gastado"
+          @reiniciar-app="reiniciarApp"
         />
       </div>
     </header>
@@ -108,6 +167,12 @@ const eliminarGasto = () => {
         @click="mostrarModal">
         <img :src="imgAgregarGasto" alt="icono neuvo gasto">
       </div >
+
+      <Filtro
+        v-if="sePuedeFiltrar"
+        v-model:filtro="filtro"
+        :filtro="filtro"
+      />
 
       <Modal
         v-if="modal.mostrar"
@@ -123,10 +188,12 @@ const eliminarGasto = () => {
         :disponible="disponible"
       />
       
-      <div class="gastos-container contenedor">
-        <h2>{{ gastos.length>0 ? 'Gastos' : 'No hay gastos' }}</h2>
+      <div 
+        class="gastos-container contenedor"
+        :style="{marginTop: (sePuedeFiltrar ? '1rem' : '10rem')}">
+        <h2>{{ gastosFiltrados.length>0 ? 'Gastos' : 'No hay gastos' }}</h2>
         <Gasto 
-          v-for="gasto in gastos"
+          v-for="gasto in gastosFiltrados"
           :key="gasto.id"
           :gasto="gasto"
           @seleccionar-gasto="seleccionarGasto"
@@ -232,7 +299,6 @@ header h1 {
 }
 
 .gastos-container {
-  margin-top: 10rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;

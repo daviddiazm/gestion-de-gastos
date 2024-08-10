@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import imgCerrar from '../assets/img/cerrar.svg'
 import Alerta from "./Alerta.vue"
 
@@ -73,6 +73,10 @@ const mostrarAlerta = (msg) => {
   }, 3000);
 }
 
+const isEditing = computed(() => {
+  return props.gasto.id
+})
+
 </script>
 
 <template>
@@ -86,11 +90,10 @@ const mostrarAlerta = (msg) => {
     class="contenedor form-gasto" 
     :class="[modal.animacion ? 'animar' : 'cerrar']"
     @submit.prevent="enviarGasto">
-
+    <legend > {{ isEditing ? 'Editar Gasto': 'Registrar Gasto' }} </legend>
     <Alerta v-if="msgAlerta">
       {{ msgAlerta }}
     </Alerta>
-    
       <div class="form-items-container">
         <div class="form-item">
           <label for="nombre">Nombre</label>
@@ -130,9 +133,10 @@ const mostrarAlerta = (msg) => {
         <input
           class="btn-sumbmit"
           type="submit" 
-          value="Registrar Gasto">
+          :value="[isEditing ? 'Editar gasto' : 'Registrar Gasto']">
 
           <button
+            v-if="isEditing"
             @click="mandarEliminarGasto"
             class="btn-eliminar">
             Eliminar gasto
@@ -177,6 +181,13 @@ const mostrarAlerta = (msg) => {
   transition-duration: 300ms;
   transition-timing-function: ease-in;
   opacity: 0;
+}
+
+.form-gasto legend {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--blanco);
+  margin-bottom: 3rem;
 }
 
 .form-gasto.animar {
