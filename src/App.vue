@@ -16,7 +16,6 @@ const disponible = ref(0)
 const gastado = ref(0)
 const indexGastoSeleccionado = ref(null)
 const gastos = ref([])
-// const gastosFiltrados = ref([])
 const filtro = ref(null)
 const gasto = reactive({
   nombre: null,
@@ -49,16 +48,28 @@ watch(gastos,()=> {
   deep:true
 })
 
-watch(gastos.value ,() => {
-  guardadrLocalStorage()
-},{
-  deep: true
-})
+// watch(gastos.value ,() => {
+//   guardadrLocalStorage()
+// },{
+//   deep: true
+// })
+
+watch([presupuesto, gastos], () => {
+  localStorage.setItem('presupuesto', JSON.stringify(presupuesto.value));
+  localStorage.setItem('gastos', JSON.stringify(gastos.value));
+}, { deep: true });
 
 watch(presupuesto.value, () => {
   guardadrLocalStorage()
 })
 
+const resetGasto = () => {
+  gasto.nombre = null;
+  gasto.cantidad = null;
+  gasto.categoria = null;
+  gasto.id = null;
+  gasto.fecha = Date.now();
+};
 
 const definirtPresupuesto = (presupuestoDefinido) => {
   presupuesto.value = presupuestoDefinido
@@ -75,9 +86,9 @@ const mostrarModal = () => {
 
 const cerrarModal = () => {
   modal.animacion = false
-  
   setTimeout(() => {
     modal.mostrar = false
+    resetGasto()
   }, 300);
 }
 
@@ -94,6 +105,7 @@ const seleccionarGasto = (id) => {
 
 const editarGasto = () => {
   gastos.value[indexGastoSeleccionado.value] = {... gasto}
+  resetGasto()
 }
 
 const eliminarGasto = () => {
@@ -117,28 +129,13 @@ const sePuedeFiltrar = computed(() => {
 
 const reiniciarApp = () => {
   presupuesto.value = 0
-  // disponible.value = 0
-  // gastado.value = 0
-  // indexGastoSeleccionado.value = null
-  gastos.value = []  
-  // gasto = {
-  //   nombre: null,
-  //   cantidad: null,
-  //   categoria: null,
-  //   id: null,
-  //   fecha: Date.now()
-  // }
-  // modal = {
-  //   mostrar: false,
-  //   animacion: false
-  // }
+  gastos.value = []
 }
 
-const guardadrLocalStorage = computed(() => {
+const guardadrLocalStorage = () => {
   localStorage.setItem('presupuesto', JSON.stringify(presupuesto.value))
-  // localStorage.setItem('gastado', JSON.stringify(gastado.value))
   localStorage.setItem('gastos', JSON.stringify(gastos.value))
-})
+}
 
 </script>
 
